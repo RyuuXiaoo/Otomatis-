@@ -3,54 +3,124 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QRIS BuyNow</title>
+  <title>Sistem Pembelian Otomatis</title>
   <style>
-    body { font-family: Arial; margin: 0; padding: 0; background: #f4f4f4; }
-    header { background: #007bff; color: #fff; padding: 1rem; text-align: center; }
+    body { font-family: Arial; margin: 0; background: #f4f4f4; }
+    header { background: #007bff; color: #fff; padding: 1.5rem; text-align: center; font-size: 1.4rem; font-weight: bold; }
     .container { padding: 1rem; }
-    .product { background: #fff; padding: 1rem; margin: 1rem 0; cursor: pointer; box-shadow: 0 0 10px #ccc; }
-    .product:hover { background: #eef; }
-    #qris-section { display: none; margin-top: 2rem; }
-    #qris-img { width: 200px; }
+    .product {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .product img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 5px;
+      margin-bottom: 0.5rem;
+    }
+    .product h3 { margin: 0.5rem 0 0.2rem; }
+    .product p { margin: 0; font-weight: bold; }
+    .product button {
+      margin-top: 0.8rem;
+      padding: 10px 15px;
+      background: #28a745;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .product button:hover {
+      background: #218838;
+    }
+    #qris-section {
+      display: none;
+      margin-top: 2rem;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #qris-img {
+      max-width: 200px;
+      display: block;
+      margin: 10px auto;
+    }
+    #akun-info {
+      white-space: pre-wrap;
+      background: #e6ffe6;
+      border: 1px solid #00cc66;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <header><h1>Sistem Pembelian Otomatis</h1></header>
+  <header>Sistem Pembelian Otomatis</header>
   <div class="container">
-    <div id="product-list"></div>
+    <div class="product">
+      <img src="https://via.placeholder.com/300x180.png?text=Spotify" alt="Spotify">
+      <h3>Akun Spotify</h3>
+      <p>Harga: Rp15.000</p>
+      <button onclick="beliProduk({id: 'prod1', name: 'Akun Spotify', price: 15000})">Beli</button>
+    </div>
+    <div class="product">
+      <img src="https://via.placeholder.com/300x180.png?text=Netflix" alt="Netflix">
+      <h3>Akun Netflix</h3>
+      <p>Harga: Rp25.000</p>
+      <button onclick="beliProduk({id: 'prod2', name: 'Akun Netflix', price: 25000})">Beli</button>
+    </div>
+
     <div id="qris-section">
       <h3>QRIS Pembayaran</h3>
-      <img id="qris-img" src="" alt="QRIS"/>
+      <img id="qris-img" src="" alt="QRIS">
       <p id="qris-details"></p>
     </div>
+
+    <div id="akun-info"></div>
   </div>
 
   <script>
-    const products = [
-      { id: "prod1", name: "Akun Spotify", price: 15000 },
-      { id: "prod2", name: "Akun Netflix", price: 25000 }
-    ];
-
-    const list = document.getElementById("product-list");
-    products.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "product";
-      div.innerHTML = `<strong>${p.name}</strong><br>Harga: Rp${p.price.toLocaleString()}`;
-      div.onclick = () => beliProduk(p);
-      list.appendChild(div);
-    });
-
+    let interval;
     async function beliProduk(product) {
-      const res = await fetch("/create-qris", {
+      const res = await fetch("/api/create-qris", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nominal: product.price, produk: product.name })
       });
+
       const data = await res.json();
       document.getElementById("qris-section").style.display = "block";
+      document.getElementById("akun-info").style.display = "none";
       document.getElementById("qris-img").src = data.qrString;
-      document.getElementById("qris-details").innerHTML =
-        `Produk: ${product.name}<br>Harga: Rp${product.price.toLocaleString()}<br>Reff ID: ${data.reffId}<br>Expired: ${data.expiredTime}`;
+      document.getElementById("qris-details").innerHTML = `
+        Produk: ${product.name}<br>
+        Harga: Rp${product.price.toLocaleString()}<br>
+        Reff ID: ${data.reffId}<br>
+        Expired: ${data.expiredTime}
+      `;
+
+      if (interval) clearInterval(interval);
+      interval = setInterval(async () => {
+        const cek = await fetch("/api/cek-status?id=" + data.reffId);
+        const hasil = await cek.json();
+        if (hasil.status === "success") {
+          clearInterval(interval);
+          document.getElementById("akun-info").style.display = "block";
+          document.getElementById("akun-info").innerText = `🎉 Pembayaran diterima!
+
+📩 Berikut detail akunmu:
+• Email: test@mail.com
+• Password: rahasia123
+• Profil: Premium
+• Pin: -
+• 2FA: -`;
+        }
+      }, 5000);
     }
   </script>
 </body>
