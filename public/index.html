@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QRIS BuyNow</title>
+  <style>
+    body { font-family: Arial; margin: 0; padding: 0; background: #f4f4f4; }
+    header { background: #007bff; color: #fff; padding: 1rem; text-align: center; }
+    .container { padding: 1rem; }
+    .product { background: #fff; padding: 1rem; margin: 1rem 0; cursor: pointer; box-shadow: 0 0 10px #ccc; }
+    .product:hover { background: #eef; }
+    #qris-section { display: none; margin-top: 2rem; }
+    #qris-img { width: 200px; }
+  </style>
+</head>
+<body>
+  <header><h1>Sistem Pembelian Otomatis</h1></header>
+  <div class="container">
+    <div id="product-list"></div>
+    <div id="qris-section">
+      <h3>QRIS Pembayaran</h3>
+      <img id="qris-img" src="" alt="QRIS"/>
+      <p id="qris-details"></p>
+    </div>
+  </div>
+
+  <script>
+    const products = [
+      { id: "prod1", name: "Akun Spotify", price: 15000 },
+      { id: "prod2", name: "Akun Netflix", price: 25000 }
+    ];
+
+    const list = document.getElementById("product-list");
+    products.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "product";
+      div.innerHTML = `<strong>${p.name}</strong><br>Harga: Rp${p.price.toLocaleString()}`;
+      div.onclick = () => beliProduk(p);
+      list.appendChild(div);
+    });
+
+    async function beliProduk(product) {
+      const res = await fetch("/create-qris", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nominal: product.price, produk: product.name })
+      });
+      const data = await res.json();
+      document.getElementById("qris-section").style.display = "block";
+      document.getElementById("qris-img").src = data.qrString;
+      document.getElementById("qris-details").innerHTML =
+        `Produk: ${product.name}<br>Harga: Rp${product.price.toLocaleString()}<br>Reff ID: ${data.reffId}<br>Expired: ${data.expiredTime}`;
+    }
+  </script>
+</body>
+</html>
